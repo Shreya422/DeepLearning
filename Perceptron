@@ -14,7 +14,7 @@ class gates():
 
     def activation(self, x):
         return 1 if x >= 0 else 0
-    
+ 
     def perseptron(self, x, w, b):
         res = np.dot(x, w) + b
         return self.activation(res)
