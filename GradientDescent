@@ -1,0 +1,65 @@
+import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report
+
+# Load and preprocess data
+fashion_mnist = keras.datasets.fashion_mnist
+(X_train_full, y_train_full), (X_test, y_test) = fashion_mnist.load_data()
+
+X_train_full = X_train_full / 255.0
+X_test = X_test / 255.0
+
+valid_size = int(0.1 * len(X_train_full))
+X_valid, X_train = X_train_full[:valid_size], X_train_full[valid_size:]
+y_valid, y_train = y_train_full[:valid_size], y_train_full[valid_size:]
+
+class_names = ["T-shirt/top", "Trouser", "Pullover", "Dress", "Coat", "Sandal", 
+               "Shirt", "Sneaker", "Bag", "Ankle boot"]
+
+# Model definition
+hidden_layer_1_neurons = np.random.randint(200,350)
+hidden_layer_2_neurons = np.random.randint(50,150)
+output_neurons = 10
+activation_function = "relu"
+epochs = 30
+
+model = keras.models.Sequential([
+    keras.layers.Flatten(input_shape=[28, 28]),
+    keras.layers.Dense(hidden_layer_1_neurons, activation=activation_function),
+    keras.layers.BatchNormalization(),
+    keras.layers.Dense(hidden_layer_2_neurons, activation=activation_function),
+    keras.layers.BatchNormalization(),
+    keras.layers.Dense(output_neurons, activation="softmax")
+])
+
+# Compile and train
+model.compile(loss="sparse_categorical_crossentropy", optimizer="sgd", metrics=["accuracy"])
+
+history = model.fit(X_train, y_train, epochs=epochs, validation_data=(X_valid, y_valid), callbacks=[
+    keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True)
+])
+
+'''
+The keras.callbacks.EarlyStopping function is used during model training to stop the training process 
+early if the model's performance on a validation dataset stops improving.
+patience=5:
+This specifies the number of epochs to wait after the last improvement in the monitored metric.
+
+restore_best_weights=True:
+After training stops, the model will automatically restore the weights from the epoch where the best (lowest) validation metric was achieved.'''
+# Evaluate and visualize
+model.evaluate(X_test, y_test)
+
+pd.DataFrame(history.history)[['accuracy', 'val_accuracy']].plot(figsize=(8, 5))
+plt.title("Training and Validation Accuracy")
+plt.xlabel("Epochs")
+plt.ylabel("Accuracy")
+plt.grid(True)
+plt.show()
+
+# Predictions and classification report
+y_pred_classes = np.argmax(model.predict(X_test), axis=1)
+print(classification_report(y_test, y_pred_classes, target_names=class_names))
